@@ -1171,7 +1171,7 @@ async function _streamHandlerInner({ type, id, config }) {
 					torznabKey: config.torznabKey || "",
 				},
 			}),
-			HTTP_SOURCES_ENABLED.length
+			!instantOnly && HTTP_SOURCES_ENABLED.length
 				? withSingleFlight(`sf:http:${type}:${id}`, async () => {
 					const first = await fetchAllHttpSources(type, id, season, episode, HTTP_SOURCES_ENABLED).catch(() => []);
 					// Búsqueda avanzada: si hay pocos resultados, segunda pasada con "latino"
@@ -1234,11 +1234,14 @@ async function _streamHandlerInner({ type, id, config }) {
 			});
 
 			const ok = resolved.filter(Boolean);
+			if (instantOnly) return { streams: ok };
 			// Combinar con streams HTTP directos (siempre disponibles, sin TorBox)
 			const combined = [...httpFormatted.slice(0, max), ...ok];
 			if (combined.length) return { streams: combined.slice(0, max) };
 			// si TorBox falló en todo, caemos al modo magnet
 		}
+
+		if (instantOnly) return { streams: [] };
 
 		// 3. Fallback: magnets latino directos (Stremio los reproduce nativamente)
 		// + streams HTTP directos al inicio (no requieren torrent)
